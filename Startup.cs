@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Primitives;
 
 namespace CustomerAPI
 {
@@ -44,10 +45,12 @@ namespace CustomerAPI
 
             var authkey = Configuration.GetValue<string>("JWTSetting:securitykey");
 
-            services.AddAuthentication(item => {
+            services.AddAuthentication(item =>
+            {
                 item.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 item.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(item => {
+            }).AddJwtBearer(item =>
+            {
 
                 item.RequireHttpsMetadata = true;
                 item.SaveToken = true;
@@ -56,7 +59,9 @@ namespace CustomerAPI
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(authkey)),
                     ValidateIssuer = false,
-                    ValidateAudience = false
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew=TimeSpan.Zero
                 };
             });
 
@@ -70,7 +75,15 @@ namespace CustomerAPI
                 });
             });
 
-            services.AddCors();
+            services.AddCors(options =>
+            {
+                options.AddPolicy("CorsPolicy",
+                    builder => builder
+                    .WithOrigins("http://localhost:4200")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials());
+            });
 
         }
 
@@ -82,6 +95,8 @@ namespace CustomerAPI
                 app.UseDeveloperExceptionPage();
             }
 
+            app.UseCors("CorsPolicy");
+
             app.UseHttpsRedirection();
 
             app.UseRouting();
@@ -92,12 +107,18 @@ namespace CustomerAPI
 
             app.UseSwagger();
 
-            app.UseCors(builder =>
+            //  string StringValues=string.Empty;
+
+            app.UseExceptionHandler(errorApp =>
             {
-                builder
-                .AllowAnyOrigin()
-                .AllowAnyMethod()
-                .AllowAnyHeader();
+                errorApp.Run(async context =>
+                {
+                    // Add CORS header to allow error message to be visible to Angular
+                    if (context.Request.Headers.TryGetValue("Origin", out StringValues origin))
+                    {
+                        context.Response.Headers.Add("Access-Control-Allow-Origin", origin.ToString());
+                    }
+                });
             });
 
             app.UseSwaggerUI(options => options.SwaggerEndpoint("api/swagger.json", "Customer"));

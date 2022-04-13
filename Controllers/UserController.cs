@@ -34,7 +34,7 @@ namespace CustomerAPI.Controllers
             var tokenkey = Encoding.UTF8.GetBytes(setting.securitykey);
             var tokenhandler = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(2),
+                expires: DateTime.Now.AddMinutes(15),
                  signingCredentials: new SigningCredentials(new SymmetricSecurityKey(tokenkey), SecurityAlgorithms.HmacSha256)
 
                 );
@@ -65,7 +65,7 @@ namespace CustomerAPI.Controllers
 
                     }
                 ),
-                Expires = DateTime.Now.AddMinutes(2),
+                Expires = DateTime.Now.AddSeconds(20),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(tokenkey), SecurityAlgorithms.HmacSha256)
             };
             var token = tokenhandler.CreateToken(tokenDescriptor);
@@ -81,31 +81,47 @@ namespace CustomerAPI.Controllers
         [HttpPost]
         public IActionResult Refresh([FromBody] TokenResponse token)
         {
-            var tokenhandler = new JwtSecurityTokenHandler();
-            SecurityToken securityToken;
-            var principal = tokenhandler.ValidateToken(token.JWTToken, new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(setting.securitykey)),
-                ValidateIssuer = false,
-                ValidateAudience = false
+           
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var securityToken = (JwtSecurityToken)tokenHandler.ReadToken(token.JWTToken);
+            var username = securityToken.Claims.FirstOrDefault(c => c.Type == "unique_name")?.Value;
+           
 
-            }, out securityToken);
-
-            var _token = securityToken as JwtSecurityToken;
-
-            if(_token!=null && !_token.Header.Alg.Equals(SecurityAlgorithms.HmacSha256))
-            {
-                return Unauthorized();
-            }
-            var username = principal.Identity.Name;
+            //var username = principal.Identity.Name;
             var _reftable = context.TblRefreshtoken.FirstOrDefault(o => o.UserId == username && o.RefreshToken == token.RefreshToken);
             if (_reftable == null)
             {
                 return Unauthorized();
             }
-            TokenResponse _result = Authenticate(username, principal.Claims.ToArray());
+            TokenResponse _result = Authenticate(username, securityToken.Claims.ToArray());
             return Ok(_result);
+        }
+
+        [Route("GetMenubyRole/{role}")]
+        [HttpGet]
+        public IActionResult GetMenubyRole(string role)
+        {
+            var _result = (from q1 in context.TblPermission.Where(item=>item.RoleId==role)
+                          join q2 in context.TblMenu
+                          on q1.MenuId equals q2.Id
+                          select new { q1.MenuId, q2.Name, q2.LinkName }).ToList();
+           // var _result = context.TblPermission.Where(o => o.RoleId == role).ToList();
+           
+            return Ok(_result);
+        }
+
+        [Route("HaveAccess")]
+        [HttpGet]
+        public IActionResult HaveAccess(string role,string menu)
+        {
+            APIResponse result = new APIResponse();
+            //var username = principal.Identity.Name;
+            var _result = context.TblPermission.Where(o => o.RoleId == role && o.MenuId == menu).FirstOrDefault();
+            if (_result != null)
+            {
+                result.result = "pass";
+            }
+            return Ok(result);
         }
 
     }
