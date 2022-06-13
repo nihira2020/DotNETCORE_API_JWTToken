@@ -20,6 +20,7 @@ namespace CustomerAPI.Models
         public virtual DbSet<TblEmployee> TblEmployee { get; set; }
         public virtual DbSet<TblMenu> TblMenu { get; set; }
         public virtual DbSet<TblPermission> TblPermission { get; set; }
+        public virtual DbSet<TblProduct> TblProduct { get; set; }
         public virtual DbSet<TblRefreshtoken> TblRefreshtoken { get; set; }
         public virtual DbSet<TblRole> TblRole { get; set; }
         public virtual DbSet<TblUser> TblUser { get; set; }
@@ -28,7 +29,6 @@ namespace CustomerAPI.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
-
             }
         }
 
@@ -124,6 +124,19 @@ namespace CustomerAPI.Models
                     .IsUnicode(false);
 
                 entity.Property(e => e.MenuId)
+                    .HasMaxLength(50)
+                    .IsUnicode(false);
+            });
+
+            modelBuilder.Entity<TblProduct>(entity =>
+            {
+                entity.HasKey(e => e.Code);
+
+                entity.ToTable("tbl_product");
+
+                entity.Property(e => e.Amount).HasColumnType("decimal(18, 3)");
+
+                entity.Property(e => e.Name)
                     .HasMaxLength(50)
                     .IsUnicode(false);
             });
