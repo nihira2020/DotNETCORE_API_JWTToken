@@ -15,6 +15,7 @@ namespace CustomerAPI.Models
         {
         }
 
+        public virtual DbSet<Category> Category { get; set; }
         public virtual DbSet<TblCustomer> TblCustomer { get; set; }
         public virtual DbSet<TblDesignation> TblDesignation { get; set; }
         public virtual DbSet<TblEmployee> TblEmployee { get; set; }
@@ -29,6 +30,8 @@ namespace CustomerAPI.Models
         {
             if (!optionsBuilder.IsConfigured)
             {
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+                optionsBuilder.UseSqlServer("Server=LAPTOP-4K7AS2ME\\SQLEXPRESS;Database=Learn_DB;Trusted_Connection=True;");
             }
         }
 
@@ -186,6 +189,8 @@ namespace CustomerAPI.Models
                 entity.Property(e => e.Email)
                     .HasMaxLength(50)
                     .IsUnicode(false);
+
+                entity.Property(e => e.IsActive).HasDefaultValueSql("((1))");
 
                 entity.Property(e => e.Name)
                     .HasMaxLength(50)

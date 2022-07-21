@@ -49,7 +49,7 @@ namespace CustomerAPI.Controllers
         public IActionResult Authenticate([FromBody] usercred user)
         {
             TokenResponse tokenResponse = new TokenResponse();
-            var _user = context.TblUser.FirstOrDefault(o => o.Userid == user.username && o.Password == user.password);
+            var _user = context.TblUser.FirstOrDefault(o => o.Userid == user.username && o.Password == user.password && o.IsActive==true);
             if (_user == null)
                 return Unauthorized();
 
@@ -122,6 +122,50 @@ namespace CustomerAPI.Controllers
                 result.result = "pass";
             }
             return Ok(result);
+        }
+
+        [Route("GetAllRole")]
+        [HttpGet]
+        public IActionResult GetAllRole()
+        {
+            var _result = context.TblRole.ToList();
+            // var _result = context.TblPermission.Where(o => o.RoleId == role).ToList();
+
+            return Ok(_result);
+        }
+
+        [HttpPost("Register")]
+        public APIResponse Register([FromBody] TblUser value)
+        {
+            string result = string.Empty;
+            try
+            {
+                var _emp = context.TblUser.FirstOrDefault(o => o.Userid == value.Userid);
+                if (_emp != null)
+                {
+                    result = string.Empty;
+                }
+                else
+                {
+                    TblUser tblUser = new TblUser()
+                    {
+                        Name = value.Name,
+                        Email = value.Email,
+                        Userid = value.Userid,
+                        Role = string.Empty,
+                        Password = value.Password,
+                        IsActive = false
+                    };
+                    context.TblUser.Add(tblUser);
+                    context.SaveChanges();
+                    result = "pass";
+                }
+            }
+            catch (Exception ex)
+            {
+                result = string.Empty;
+            }
+            return new APIResponse { keycode = string.Empty, result = result };
         }
 
     }
